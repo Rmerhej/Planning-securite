@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title th:text="${form.id == null ? 'Nouvelle mission' : 'Modifier la mission'}">Mission</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-7">
+
+            <a th:href="@{/admin(d=${form.date})}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Retour au planning</a>
+            <h1 class="h3 fw-bold mt-2 mb-4" th:text="${form.id == null ? 'Nouvelle mission' : 'Modifier la mission'}">Mission</h1>
+
+            <div th:if="${erreursMetier != null}" class="alert alert-danger">
+                <div class="fw-semibold mb-1"><i class="bi bi-x-octagon me-1"></i>Mission non enregistrée</div>
+                <ul class="mb-0 ps-3"><li th:each="e : ${erreursMetier}" th:text="${e}"></li></ul>
+            </div>
+
+            <form th:action="${form.id == null} ? @{/admin/missions/nouvelle} : @{/admin/missions/{id}(id=${form.id})}"
+                  th:object="${form}" method="post" id="form-mission" novalidate>
+
+                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
+                    <div th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="date">Date</label>
+                                <input type="date" class="form-control" th:field="*{date}" th:errorclass="is-invalid" required>
+                                <div class="invalid-feedback" th:errors="*{date}"></div>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label" for="agentId">Agent</label>
+                                <select class="form-select" th:field="*{agentId}" th:errorclass="is-invalid" required>
+                                    <option value="">Choisir un agent…</option>
+                                    <option th:each="a : ${agents}" th:value="${a.id}" th:text="${a.nomEtTelephone}"></option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{agentId}"></div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="siteId">Lieu de mission</label>
+                                <select class="form-select" th:field="*{siteId}" th:errorclass="is-invalid" required>
+                                    <option value="">Choisir un lieu…</option>
+                                    <option th:each="s : ${sites}" th:value="${s.id}"
+                                            th:text="${s.nom + ' — ' + s.adresseComplete}"></option>
+                                </select>
+                                <div class="invalid-feedback" th:errors="*{siteId}"></div>
+                                <div class="form-text"><a th:href="@{/admin/sites/nouveau}" target="_blank">+ Ajouter un nouveau lieu</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Créneaux horaires -->
+                <div class="card mb-3">
+                    <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span class="fw-semibold"><i class="bi bi-clock me-1"></i>Horaires</span>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Modèles d'horaires">
+                            <button type="button" class="btn btn-outline-secondary" data-modele="09:00-12:00,15:00-18:00">Coupure</button>
+                            <button type="button" class="btn btn-outline-secondary" data-modele="08:00-16:00">Journée</button>
+                            <button type="button" class="btn btn-outline-secondary" data-modele="21:00-06:00">Nuit</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="creneaux">
+                            <div class="row g-2 align-items-end mb-2 creneau" th:each="c, it : *{creneaux}">
+                                <div class="col-5">
+                                    <label class="form-label small mb-1">De</label>
+                                    <input type="time" class="form-control" data-champ="heureDebut"
+                                           th:field="*{creneaux[__${it.index}__].heureDebut}">
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label small mb-1">À</label>
+                                    <input type="time" class="form-control" data-champ="heureFin"
+                                           th:field="*{creneaux[__${it.index}__].heureFin}">
+                                </div>
+                                <div class="col-2">
+                                    <button type="button" class="btn btn-outline-danger w-100 suppr-creneau" title="Retirer ce créneau">
+                                        <i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="ajout-creneau">
+                            <i class="bi bi-plus-lg"></i> Ajouter un créneau</button>
+                        <div class="form-text mt-2">
+                            Total : <strong id="total-creneaux">–</strong>.
+                            Un créneau dont l'heure de fin est avant l'heure de début se termine le lendemain (ex. 21h → 6h).
+                        </div>
+                    </div>
+                </div>
+
+                <template id="modele-creneau">
+                    <div class="row g-2 align-items-end mb-2 creneau">
+                        <div class="col-5">
+                            <label class="form-label small mb-1">De</label>
+                            <input type="time" class="form-control" data-champ="heureDebut">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small mb-1">À</label>
+                            <input type="time" class="form-control" data-champ="heureFin">
+                        </div>
+                        <div class="col-2">
+                            <button type="button" class="btn btn-outline-danger w-100 suppr-creneau" title="Retirer ce créneau">
+                                <i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Répétition (création seulement) -->
+                <div class="card mb-3" th:if="${form.id == null}">
+                    <div class="card-header bg-transparent">
+                        <a class="fw-semibold text-decoration-none" data-bs-toggle="collapse" href="#repetition" role="button"
+                           th:attr="aria-expanded=${form.repeterJusquau != null}">
+                            <i class="bi bi-arrow-repeat me-1"></i>Répéter cette mission</a>
+                    </div>
+                    <div id="repetition" class="collapse" th:classappend="${form.repeterJusquau != null} ? 'show'">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="repeterJusquau">Jusqu'au</label>
+                                    <input type="date" class="form-control" th:field="*{repeterJusquau}">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label d-block">Les jours</label>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <!-- Pas de th:field ici : il insère un champ caché entre la case et son libellé,
+                                             ce qui casse l'affichage "bouton coché" de Bootstrap (.btn-check + .btn) -->
+                                        <th:block th:each="j : ${jours}">
+                                            <input type="checkbox" class="btn-check" name="joursRepetition" autocomplete="off"
+                                                   th:id="${'jour-' + j.valeur()}" th:value="${j.valeur()}"
+                                                   th:checked="${form.joursRepetition != null and form.joursRepetition.contains(j.valeur())}">
+                                            <label class="btn btn-sm btn-outline-primary" th:for="${'jour-' + j.valeur()}"
+                                                   th:text="${j.libelle()}"></label>
+                                        </th:block>
+                                    </div>
+                                    <div class="form-text">Aucun jour coché = tous les jours. Les dates en conflit sont ignorées et signalées.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body row g-3">
+                        <div class="col-md-4" th:if="${form.id != null}">
+                            <label class="form-label" for="statut">Statut</label>
+                            <select class="form-select" th:field="*{statut}">
+                                <option th:each="s : ${statuts}" th:value="${s}" th:text="${s.libelle}"></option>
+                            </select>
+                        </div>
+                        <div th:class="${form.id != null} ? 'col-md-8' : 'col-12'">
+                            <label class="form-label" for="commentaire">Commentaire (visible par l'agent)</label>
+                            <input type="text" class="form-control" th:field="*{commentaire}" maxlength="500"
+                                   placeholder="Ex. : se présenter au responsable du magasin">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 justify-content-between">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-lg me-1"></i>Enregistrer et prévenir l'agent</button>
+                    <button th:if="${form.id != null}" type="submit" class="btn btn-outline-danger" form="form-suppression">
+                        <i class="bi bi-trash me-1"></i>Supprimer</button>
+                </div>
+                <p th:if="${mission != null}" class="small text-muted mt-3">
+                    Créée le <span th:text="${#temporals.format(mission.creeLe, 'dd/MM/yyyy HH:mm')}"></span>,
+                    modifiée le <span th:text="${#temporals.format(mission.modifieLe, 'dd/MM/yyyy HH:mm')}"></span>.
+                </p>
+            </form>
+
+            <form th:if="${form.id != null}" id="form-suppression" method="post"
+                  th:action="@{/admin/missions/{id}/supprimer(id=${form.id})}"
+                  onsubmit="return confirm('Supprimer cette mission ? L\'agent sera prévenu si elle est à venir.')"></form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: plansecu
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:plansecu}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=Europe/Paris&createDatabaseIfNotExist=true
+    username: ${DB_USER:plansecu}
+    password: ${DB_PASSWORD:plansecu}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none          # le schéma est géré par Flyway
+    properties:
+      hibernate:
+        jdbc.time_zone: Europe/Paris
+  flyway:
+    enabled: true
+  web:
+    locale: fr_FR
+    locale-resolver: fixed
+  mvc:
+    format:
+      date: iso
+      time: HH:mm
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+app:
+  nom: PlanSécu
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  admin:
+    username: ${ADMIN_USER:admin}
+    password: ${ADMIN_PASSWORD:admin123}
+  notifications:
+    email-enabled: ${MAIL_ENABLED:false}   # false = emails simulés (journalisés)
+    email-from: ${MAIL_FROM:planning@plansecu.fr}
+    sms-provider: ${SMS_PROVIDER:log}      # log | brevo
+    brevo-api-key: ${BREVO_API_KEY:}
+    sms-sender: ${SMS_SENDER:PlanSecu}     # 11 caractères max, sans espace
+  regles:
+    max-heures-jour: 12
+    max-heures-semaine: 48
+    repos-min-heures: 11
+    alerte-carte-pro-jours: 60
+    nuit-debut: 21
+    nuit-fin: 6
+    tolerance-retard-minutes: 5     # retard signalé au-delà
+    pointage-avance-minutes: 120    # on peut pointer jusqu'à 2h avant le début
+  planning:
+    cloture-auto: true
+    cron-hebdo: "0 0 18 * * SUN"     # dimanche 18h : planning de la semaine suivante
+    cron-mensuel: "0 0 18 25 * *"    # le 25 à 18h : planning du mois suivant
+    cron-cloture: "0 30 2 * * *"     # 2h30 : missions passées -> effectuées
+
+logging:
+  level:
+    com.plansecu: INFO

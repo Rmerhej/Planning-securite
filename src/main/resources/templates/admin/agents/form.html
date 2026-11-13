@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title th:text="${form.id == null ? 'Nouvel agent' : 'Modifier l''agent'}">Agent</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-7">
+            <a th:href="@{/admin/agents}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Agents</a>
+            <h1 class="h3 fw-bold mt-2 mb-4" th:text="${form.id == null ? 'Nouvel agent' : 'Modifier ' + agent.nomComplet}">Agent</h1>
+
+            <form th:action="@{/admin/agents/enregistrer}" th:object="${form}" method="post" novalidate>
+                <input type="hidden" th:field="*{id}">
+
+                <div class="card mb-3">
+                    <div class="card-header bg-transparent fw-semibold">Identité</div>
+                    <div class="card-body row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="nom">Nom</label>
+                            <input class="form-control" th:field="*{nom}" th:errorclass="is-invalid" required>
+                            <div class="invalid-feedback" th:errors="*{nom}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="prenom">Prénom</label>
+                            <input class="form-control" th:field="*{prenom}" th:errorclass="is-invalid" required>
+                            <div class="invalid-feedback" th:errors="*{prenom}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="telephone">Téléphone</label>
+                            <input type="tel" class="form-control" th:field="*{telephone}" th:errorclass="is-invalid"
+                                   placeholder="06 12 34 56 78" required>
+                            <div class="invalid-feedback" th:errors="*{telephone}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="email">Email</label>
+                            <input type="email" class="form-control" th:field="*{email}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{email}"></div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="carteProNumero">N° carte professionnelle (CNAPS)</label>
+                            <input class="form-control" th:field="*{carteProNumero}" placeholder="CAR-069-2025-...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="carteProExpiration">Expiration</label>
+                            <input type="date" class="form-control" th:field="*{carteProExpiration}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="couleur">Couleur planning</label>
+                            <input type="color" class="form-control form-control-color w-100" th:field="*{couleur}">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{actif}">
+                                <label class="form-check-label" th:for="${#ids.prev('actif')}">Agent actif</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-transparent fw-semibold">Notifications</div>
+                    <div class="card-body row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{notifSms}">
+                                <label class="form-check-label" th:for="${#ids.prev('notifSms')}">Prévenir par SMS</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{notifEmail}">
+                                <label class="form-check-label" th:for="${#ids.prev('notifEmail')}">Prévenir par email</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{recoitHebdo}">
+                                <label class="form-check-label" th:for="${#ids.prev('recoitHebdo')}">Planning hebdomadaire (dimanche soir)</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{recoitMensuel}">
+                                <label class="form-check-label" th:for="${#ids.prev('recoitMensuel')}">Planning mensuel (le 25)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-transparent fw-semibold">Accès à l'espace agent</div>
+                    <div class="card-body row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="identifiant">Identifiant</label>
+                            <input class="form-control" th:field="*{identifiant}" th:errorclass="is-invalid"
+                                   autocomplete="off" autocapitalize="none" placeholder="ex. jdupont">
+                            <div class="invalid-feedback" th:errors="*{identifiant}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="motDePasse">Mot de passe</label>
+                            <input type="password" class="form-control" th:field="*{motDePasse}" autocomplete="new-password"
+                                   th:placeholder="${form.id != null and form.identifiant != null} ? 'Laisser vide pour ne pas changer' : '8 caractères minimum'">
+                        </div>
+                        <div class="col-12 form-text mt-0">Laissez l'identifiant vide si l'agent n'a pas besoin de se connecter.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 justify-content-between">
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+                    <button th:if="${form.id != null}" type="submit" form="form-suppression" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer</button>
+                </div>
+            </form>
+
+            <form th:if="${form.id != null}" id="form-suppression" method="post"
+                  th:action="@{/admin/agents/{id}/supprimer(id=${form.id})}"
+                  onsubmit="return confirm('Supprimer cet agent ? S\'il a des missions, il sera seulement désactivé.')"></form>
+
+            <div class="card mt-4" th:if="${lienIcs != null}">
+                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-calendar-plus me-1"></i>Abonnement calendrier de l'agent</div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Lien secret à ajouter dans Google Agenda / Apple Calendrier : le planning se met à jour automatiquement.</p>
+                    <div class="input-group">
+                        <input class="form-control" id="lien-ics" th:value="${lienIcs}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" data-copier="#lien-ics"><i class="bi bi-clipboard"></i> Copier</button>
+                    </div>
+                    <form th:action="@{/admin/agents/{id}/nouveau-lien-calendrier(id=${form.id})}" method="post" class="mt-2">
+                        <button class="btn btn-sm btn-link px-0" type="submit">Générer un nouveau lien (désactive l'ancien)</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

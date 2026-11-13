@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Agents</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h1 class="h3 mb-0 fw-bold">Agents</h1>
+        <a th:href="@{/admin/agents/nouveau}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i>Nouvel agent</a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Agent</th>
+                    <th>Téléphone</th>
+                    <th class="d-none d-md-table-cell">Email</th>
+                    <th>Carte pro</th>
+                    <th class="d-none d-lg-table-cell">Compte</th>
+                    <th class="d-none d-lg-table-cell">Reçoit</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(agents)}">
+                    <td colspan="7" class="text-center text-muted py-4">Aucun agent. Commencez par en ajouter un.</td>
+                </tr>
+                <tr th:each="a : ${agents}" th:classappend="${!a.actif} ? 'text-muted'">
+                    <td>
+                        <span class="pastille" th:style="'background:' + ${a.couleur}"></span>
+                        <a th:href="@{/admin/agents/{id}(id=${a.id})}" class="fw-semibold text-decoration-none" th:text="${a.nomComplet}"></a>
+                        <span th:if="${!a.actif}" class="badge text-bg-secondary ms-1">Inactif</span>
+                    </td>
+                    <td class="text-nowrap"><a th:href="${@fmt.telLien(a.telephone)}" class="text-decoration-none" th:text="${a.telephoneFormate}"></a></td>
+                    <td class="d-none d-md-table-cell" th:text="${a.email ?: '–'}"></td>
+                    <td>
+                        <span th:if="${a.carteProExpiration == null}" class="badge text-bg-light">Non renseignée</span>
+                        <span th:if="${a.carteProExpiration != null and a.carteProExpiration.isBefore(aujourdhui)}"
+                              class="badge text-bg-danger">Expirée</span>
+                        <span th:if="${a.carteProExpiration != null and !a.carteProExpiration.isBefore(aujourdhui) and a.carteProExpiration.isBefore(aujourdhui.plusDays(alerteJours))}"
+                              class="badge text-bg-warning" th:text="'Expire le ' + ${#temporals.format(a.carteProExpiration, 'dd/MM/yy')}"></span>
+                        <span th:if="${a.carteProExpiration != null and !a.carteProExpiration.isBefore(aujourdhui.plusDays(alerteJours))}"
+                              class="badge text-bg-success">Valide</span>
+                    </td>
+                    <td class="d-none d-lg-table-cell">
+                        <code th:if="${comptes[a.id] != null}" th:text="${comptes[a.id]}"></code>
+                        <span th:if="${comptes[a.id] == null}" class="text-muted small">Aucun</span>
+                    </td>
+                    <td class="d-none d-lg-table-cell small">
+                        <span th:if="${a.recoitHebdo}" class="badge text-bg-light">Hebdo</span>
+                        <span th:if="${a.recoitMensuel}" class="badge text-bg-light">Mensuel</span>
+                        <i th:if="${a.notifSms}" class="bi bi-chat-text ms-1" title="SMS"></i>
+                        <i th:if="${a.notifEmail and a.email != null}" class="bi bi-envelope ms-1" title="Email"></i>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/admin/agents/{id}(id=${a.id})}" class="btn btn-sm btn-outline-primary" title="Planning">
+                            <i class="bi bi-calendar-week"></i></a>
+                        <a th:href="@{/admin/agents/{id}/modifier(id=${a.id})}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                            <i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

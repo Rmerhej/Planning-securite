@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Planning</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-0 fw-bold">Planning</h1>
+            <div class="text-muted" th:text="${@fmt.jourLong(aujourdhui)}"></div>
+        </div>
+        <a th:href="@{/admin/missions/nouvelle}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Nouvelle mission</a>
+    </div>
+
+    <!-- Indicateurs -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Missions aujourd'hui</div>
+                    <div class="stat-value" th:text="${#lists.size(missionsDuJour)}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Agents en poste</div>
+                    <div class="stat-value" th:text="${nbAgentsDuJour}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Heures planifiées cette semaine</div>
+                    <div class="stat-value" th:text="${@fmt.heures(minutesSemaine)}">0h00</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card h-100" th:classappend="${!#lists.isEmpty(cartesAExpirer)} ? 'stat-alerte'">
+                <div class="card-body">
+                    <div class="stat-label">Cartes pro à renouveler</div>
+                    <div class="stat-value" th:text="${#lists.size(cartesAExpirer)}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendrier -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2 mb-3">
+                <div class="col-12 col-md-4 col-lg-3">
+                    <select id="filtre-agent" class="form-select" aria-label="Filtrer par agent">
+                        <option value="">Tous les agents</option>
+                        <option th:each="a : ${agents}" th:value="${a.id}" th:text="${a.nomEtTelephone}"
+                                th:selected="${a.id == agentId}"></option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 col-lg-3">
+                    <select id="filtre-site" class="form-select" aria-label="Filtrer par lieu">
+                        <option value="">Tous les lieux</option>
+                        <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.nom}"
+                                th:selected="${s.id == siteId}"></option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 col-lg-6 d-flex align-items-center small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>Cliquez sur un jour pour ajouter une mission, sur une mission pour la modifier.
+                </div>
+            </div>
+            <div id="calendrier"></div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Missions du jour -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-transparent fw-semibold">
+                    <i class="bi bi-clock me-1"></i>Aujourd'hui
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Agent</th>
+                            <th>Lieu</th>
+                            <th>Horaires</th>
+                            <th>Statut</th>
+                            <th>Pointage</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${#lists.isEmpty(missionsDuJour)}">
+                            <td colspan="6" class="text-center text-muted py-4">Aucune mission aujourd'hui.</td>
+                        </tr>
+                        <tr th:each="m : ${missionsDuJour}">
+                            <td>
+                                <span class="pastille" th:style="'background:' + ${m.agent.couleur}"></span>
+                                <a th:href="@{/admin/agents/{id}(id=${m.agent.id})}" class="fw-semibold text-decoration-none"
+                                   th:text="${m.agent.nomComplet}"></a>
+                                <div class="small"><a th:href="${@fmt.telLien(m.agent.telephone)}" class="text-muted text-decoration-none">
+                                    <i class="bi bi-telephone"></i> <span th:text="${m.agent.telephoneFormate}"></span></a></div>
+                            </td>
+                            <td>
+                                <div th:text="${m.site.nom}"></div>
+                                <div class="small text-muted" th:text="${m.site.adresseComplete}"></div>
+                            </td>
+                            <td class="text-nowrap" th:text="${m.horairesLibelle}"></td>
+                            <td><span class="badge" th:classappend="'text-bg-' + ${m.statut.couleur}" th:text="${m.statut.libelle}"></span></td>
+                            <td th:with="s=${suivis[m.id]}">
+                                <a th:href="@{/admin/pointages}" class="text-decoration-none">
+                                    <span class="badge" th:classappend="'text-bg-' + ${s.etat().couleur}" th:text="${s.etat().libelle}"></span></a>
+                                <div class="small text-nowrap" th:each="p : ${s.pointages()}"
+                                     th:text="${p.type.libelle + ' ' + #temporals.format(p.horodatage, 'HH:mm')}"></div>
+                                <div class="small text-danger" th:each="a : ${s.anomalies()}" th:text="${a}"></div>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <form th:if="${m.statut.name() == 'PLANIFIEE'}" th:action="@{/admin/missions/{id}/statut(id=${m.id})}"
+                                      method="post" class="d-inline">
+                                    <input type="hidden" name="statut" value="ABSENT">
+                                    <button class="btn btn-sm btn-outline-danger" title="Signaler l'agent absent"
+                                            onclick="return confirm('Signaler cet agent absent sur cette mission ?')">
+                                        <i class="bi bi-person-x"></i></button>
+                                </form>
+                                <a th:href="@{/admin/missions/{id}(id=${m.id})}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                    <i class="bi bi-pencil"></i></a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertes -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-calendar-x me-1"></i>Absents aujourd'hui</div>
+                <ul class="list-group list-group-flush">
+                    <li th:if="${#lists.isEmpty(absencesDuJour)}" class="list-group-item text-muted">Personne.</li>
+                    <li th:each="a : ${absencesDuJour}" class="list-group-item d-flex justify-content-between">
+                        <span th:text="${a.agent.nomComplet}"></span>
+                        <span class="badge text-bg-light" th:text="${a.type.libelle}"></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-person-badge me-1"></i>Cartes professionnelles</div>
+                <ul class="list-group list-group-flush">
+                    <li th:if="${#lists.isEmpty(cartesAExpirer)}" class="list-group-item text-muted">Toutes les cartes sont valides.</li>
+                    <li th:each="a : ${cartesAExpirer}" class="list-group-item d-flex justify-content-between align-items-center">
+                        <a th:href="@{/admin/agents/{id}/modifier(id=${a.id})}" th:text="${a.nomComplet}" class="text-decoration-none"></a>
+                        <span class="badge" th:classappend="${a.carteProExpiration.isBefore(aujourdhui)} ? 'text-bg-danger' : 'text-bg-warning'"
+                              th:text="${a.carteProExpiration.isBefore(aujourdhui) ? 'Expirée' : 'Expire le ' + #temporals.format(a.carteProExpiration, 'dd/MM/yyyy')}"></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/fr.global.min.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlEvenements = /*[[@{/admin/api/evenements}]]*/ '/admin/api/evenements';
+            const urlNouvelle = /*[[@{/admin/missions/nouvelle}]]*/ '/admin/missions/nouvelle';
+            const dateInitiale = /*[[${dateInitiale.toString()}]]*/ null;
+            const vueDemandee = /*[[${vue}]]*/ null;
+            const filtreAgent = document.getElementById('filtre-agent');
+            const filtreSite = document.getElementById('filtre-site');
+            const mobile = window.innerWidth < 768;
+
+            const calendrier = new FullCalendar.Calendar(document.getElementById('calendrier'), {
+                locale: 'fr',
+                firstDay: 1,
+                initialDate: dateInitiale,
+                initialView: vueDemandee || (mobile ? 'listWeek' : 'timeGridWeek'),
+                headerToolbar: mobile
+                    ? { left: 'prev,next', center: 'title', right: 'today' }
+                    : { left: 'prev,next today', center: 'title', right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek' },
+                footerToolbar: mobile ? { center: 'timeGridDay,listWeek,dayGridMonth' } : false,
+                buttonText: { listWeek: 'Liste' },
+                nowIndicator: true,
+                scrollTime: '07:00:00',
+                contentHeight: mobile ? 'auto' : 680,
+                slotDuration: '00:30:00',
+                dayMaxEvents: 4,
+                eventTimeFormat: { hour: '2-digit', minute: '2-digit' },
+                navLinks: true,
+                events: {
+                    url: urlEvenements,
+                    extraParams: () => ({ agentId: filtreAgent.value, siteId: filtreSite.value })
+                },
+                eventDidMount: info => {
+                    if (info.event.extendedProps.tooltip) info.el.title = info.event.extendedProps.tooltip;
+                },
+                dateClick: info => {
+                    const params = new URLSearchParams({ date: info.dateStr.substring(0, 10) });
+                    if (filtreAgent.value) params.set('agentId', filtreAgent.value);
+                    if (filtreSite.value) params.set('siteId', filtreSite.value);
+                    window.location = urlNouvelle + '?' + params;
+                }
+            });
+            calendrier.render();
+            [filtreAgent, filtreSite].forEach(f => f.addEventListener('change', () => calendrier.refetchEvents()));
+        });
+    </script>
+</th:block>
+</body>
+</html>

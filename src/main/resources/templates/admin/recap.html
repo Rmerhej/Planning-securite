@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Récap mensuel</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <a th:href="@{/admin/recap(mois=${moisPrecedent})}" class="btn btn-sm btn-outline-secondary no-print"><i class="bi bi-chevron-left"></i></a>
+            <h1 class="h3 mb-0 fw-bold">Récap · <span th:text="${@fmt.mois(mois)}"></span></h1>
+            <a th:href="@{/admin/recap(mois=${moisSuivant})}" class="btn btn-sm btn-outline-secondary no-print"><i class="bi bi-chevron-right"></i></a>
+        </div>
+        <div class="d-flex gap-2 no-print">
+            <form th:action="@{/admin/recap}" method="get" class="d-flex gap-2">
+                <input type="month" name="mois" class="form-control" th:value="${mois}" aria-label="Mois">
+                <button class="btn btn-outline-secondary" type="submit">Voir</button>
+            </form>
+            <a th:href="@{/admin/recap/export(mois=${mois})}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            <button class="btn btn-outline-secondary" onclick="window.print()" title="Imprimer"><i class="bi bi-printer"></i></button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Agent</th>
+                    <th class="text-end">Jours travaillés</th>
+                    <th class="text-end">Heures effectuées</th>
+                    <th class="text-end d-none d-sm-table-cell">Heures pointées</th>
+                    <th class="text-end d-none d-md-table-cell">dont nuit</th>
+                    <th class="text-end d-none d-md-table-cell">dont dimanche</th>
+                    <th class="text-end d-none d-md-table-cell">dont férié</th>
+                    <th class="text-end d-none d-lg-table-cell">Restant planifié</th>
+                    <th class="text-end">Jours d'absence</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(recap)}">
+                    <td colspan="9" class="text-center text-muted py-4">Aucune donnée pour ce mois.</td>
+                </tr>
+                <tr th:each="r : ${recap}">
+                    <td>
+                        <a th:href="@{/admin/agents/{id}(id=${r.agent().id},mois=${mois})}" class="fw-semibold text-decoration-none"
+                           th:text="${r.agent().nomComplet}"></a>
+                        <div class="small text-muted" th:text="${r.agent().telephoneFormate}"></div>
+                    </td>
+                    <td class="text-end" th:text="${r.joursTravailles()}"></td>
+                    <td class="text-end fw-semibold" th:text="${r.heuresEffectuees}"></td>
+                    <td class="text-end d-none d-sm-table-cell">
+                        <span th:text="${r.minutesPointees() > 0 ? r.heuresPointees : '–'}"></span>
+                        <div class="small" th:if="${r.minutesPointees() > 0}"
+                             th:classappend="${r.minutesPointees() < r.minutesEffectuees()} ? 'text-danger' : 'text-muted'"
+                             th:text="${r.ecartPointage}"></div>
+                        <div class="small text-warning" th:if="${r.missionsNonPointees() > 0}"
+                             th:text="${r.missionsNonPointees() + ' non pointée(s)'}"></div>
+                    </td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${r.heuresNuit}"></td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${r.heuresDimanche}"></td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${r.heuresFerie}"></td>
+                    <td class="text-end d-none d-lg-table-cell text-muted" th:text="${r.heuresPlanifiees}"></td>
+                    <td class="text-end">
+                        <span th:if="${r.joursAbsence() == 0}" class="text-muted">0</span>
+                        <span th:if="${r.joursAbsence() > 0}" class="badge text-bg-warning" th:text="${r.joursAbsence()}"
+                              th:title="${r.detailAbsences}"></span>
+                        <div th:if="${r.joursAbsence() > 0}" class="small text-muted" th:text="${r.detailAbsences}"></div>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot th:if="${!#lists.isEmpty(recap)}" class="table-light fw-semibold">
+                <tr>
+                    <td>Total</td>
+                    <td class="text-end" th:text="${totalJours}"></td>
+                    <td class="text-end" th:text="${@fmt.heures(totalEffectuees)}"></td>
+                    <td class="text-end d-none d-sm-table-cell" th:text="${@fmt.heures(totalPointees)}"></td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${@fmt.heures(totalNuit)}"></td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${@fmt.heures(totalDimanche)}"></td>
+                    <td class="text-end d-none d-md-table-cell" th:text="${@fmt.heures(totalFerie)}"></td>
+                    <td class="text-end d-none d-lg-table-cell" th:text="${@fmt.heures(totalPlanifiees)}"></td>
+                    <td class="text-end" th:text="${totalAbsences}"></td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted mt-3">
+        Heures effectuées = missions au statut « Effectuée » (les missions passées sont clôturées automatiquement chaque nuit,
+        sauf si vous les avez marquées « Agent absent »). Travail de nuit : 21h–6h. Jours d'absence = jours calendaires
+        d'absence déclarée + jours d'absence constatée sur mission.
+    </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: plansecu
+      MYSQL_USER: plansecu
+      MYSQL_PASSWORD: plansecu
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Europe/Paris
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: plansecu
+      DB_PASSWORD: plansecu
+      ADMIN_USER: admin
+      ADMIN_PASSWORD: changez-moi
+      TZ: Europe/Paris
+      # Adresse ouverte par les téléphones (QR codes, SMS) : IP du PC sur le Wi-Fi pour tester, domaine en prod
+      # APP_BASE_URL: http://192.168.1.20:8080
+      # SPRING_PROFILES_ACTIVE: demo     # décommenter pour charger des données d'exemple
+      # MAIL_ENABLED: "true"
+      # MAIL_HOST: smtp-relay.brevo.com
+      # MAIL_USER: ...
+      # MAIL_PASSWORD: ...
+      # SMS_PROVIDER: brevo
+      # BREVO_API_KEY: ...
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:

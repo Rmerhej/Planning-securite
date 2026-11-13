@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Pointage</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+
+            <div class="text-center mb-3">
+                <div class="text-muted small" th:text="${@fmt.jourLong(maintenant.toLocalDate())}"></div>
+                <div class="display-5 fw-bold" th:text="${#temporals.format(maintenant, 'HH:mm')}">09:00</div>
+            </div>
+
+            <!-- Lieu -->
+            <div class="card mb-3" th:if="${etat.site() != null}">
+                <div class="card-body">
+                    <div class="small text-muted">Lieu</div>
+                    <div class="fw-semibold fs-5" th:text="${etat.site().nom}"></div>
+                    <div class="small text-muted" th:text="${etat.site().adresseComplete}"></div>
+                </div>
+            </div>
+
+            <!-- Pointage impossible -->
+            <div th:if="${!etat.possible()}" class="alert alert-danger">
+                <i class="bi bi-x-octagon me-1"></i><span th:text="${etat.message()}"></span>
+            </div>
+
+            <!-- Pointage possible -->
+            <th:block th:if="${etat.possible()}">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="small text-muted mb-1">Votre mission</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span th:each="c : ${etat.mission().creneauxTries}" class="creneau-badge" th:text="${c.libelle}"></span>
+                        </div>
+                        <ul class="list-unstyled small mt-3 mb-0" th:if="${!#lists.isEmpty(etat.pointages())}">
+                            <li th:each="p : ${etat.pointages()}">
+                                <i class="bi" th:classappend="${p.type.name() == 'ARRIVEE'} ? 'bi-box-arrow-in-right text-success' : 'bi-box-arrow-right text-warning'"></i>
+                                <span th:text="${p.type.libelle + ' à ' + #temporals.format(p.horodatage, 'HH:mm')}"></span>
+                                <span th:if="${p.manuel}" class="text-muted">(saisi par le responsable)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div th:if="${etat.message() != null}" class="alert alert-info py-2" th:text="${etat.message()}"></div>
+
+                <form th:action="@{/pointage/{t}(t=${token})}" method="post" id="form-pointage">
+                    <input type="hidden" name="type" th:value="${etat.prochain()}">
+                    <button type="submit" class="btn btn-lg w-100 py-3 fs-4"
+                            th:classappend="${etat.prochain().name() == 'ARRIVEE'} ? 'btn-success' : 'btn-warning'">
+                        <i class="bi me-2" th:classappend="${etat.prochain().name() == 'ARRIVEE'} ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right'"></i>
+                        <span th:text="${etat.prochain().name() == 'ARRIVEE'} ? 'Pointer mon arrivée' : 'Pointer mon départ'"></span>
+                    </button>
+                </form>
+            </th:block>
+
+            <div class="text-center mt-4">
+                <a th:href="@{/agent}" class="text-decoration-none"><i class="bi bi-calendar-week"></i> Mon planning</a>
+            </div>
+        </div>
+    </div>
+</div>
+<th:block layout:fragment="scripts">
+    <script>
+        // Évite un double pointage si l'agent appuie deux fois
+        document.getElementById('form-pointage')?.addEventListener('submit', e => {
+            e.target.querySelector('button').disabled = true;
+        });
+    </script>
+</th:block>
+</body>
+</html>

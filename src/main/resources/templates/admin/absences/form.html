@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Absence</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <a th:href="@{/admin/absences}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Absences</a>
+            <h1 class="h3 fw-bold mt-2 mb-4" th:text="${form.id == null ? 'Déclarer une absence' : 'Modifier l''absence'}">Absence</h1>
+
+            <form th:action="@{/admin/absences/enregistrer}" th:object="${form}" method="post" novalidate>
+                <input type="hidden" th:field="*{id}">
+                <div class="card mb-3">
+                    <div class="card-body row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="agentId">Agent</label>
+                            <select class="form-select" th:field="*{agentId}" th:errorclass="is-invalid" required>
+                                <option value="">Choisir un agent…</option>
+                                <option th:each="a : ${agents}" th:value="${a.id}" th:text="${a.nomEtTelephone}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:errors="*{agentId}"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="dateDebut">Du</label>
+                            <input type="date" class="form-control" th:field="*{dateDebut}" th:errorclass="is-invalid" required>
+                            <div class="invalid-feedback" th:errors="*{dateDebut}"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="dateFin">Au (inclus)</label>
+                            <input type="date" class="form-control" th:field="*{dateFin}" th:errorclass="is-invalid" required>
+                            <div class="invalid-feedback" th:errors="*{dateFin}"></div>
+                        </div>
+                        <div class="col-12 text-danger small" th:if="${#fields.hasErrors('periodeValide')}" th:errors="*{periodeValide}"></div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="type">Type</label>
+                            <select class="form-select" th:field="*{type}">
+                                <option th:each="t : ${types}" th:value="${t}" th:text="${t.libelle}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label" for="motif">Motif / commentaire</label>
+                            <input class="form-control" th:field="*{motif}" maxlength="500">
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-muted">L'agent ne pourra pas être planifié pendant cette période. Les missions déjà prévues vous seront signalées pour réaffectation.</p>
+                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

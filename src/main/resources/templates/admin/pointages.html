@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Pointages</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <a th:href="@{/admin/pointages(d=${veille},anomalies=${seulementAnomalies})}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+            <h1 class="h3 mb-0 fw-bold">Pointages · <span th:text="${@fmt.jourLong(date)}"></span></h1>
+            <a th:href="@{/admin/pointages(d=${lendemain},anomalies=${seulementAnomalies})}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <form th:action="@{/admin/pointages}" method="get" class="d-flex gap-2">
+                <input type="date" name="d" class="form-control" th:value="${date}" aria-label="Date">
+                <button class="btn btn-outline-secondary" type="submit">Voir</button>
+            </form>
+            <a th:if="${!seulementAnomalies}" th:href="@{/admin/pointages(d=${date},anomalies=true)}" class="btn btn-outline-warning">
+                <i class="bi bi-funnel"></i> À vérifier (<span th:text="${nbAnomalies}"></span>)</a>
+            <a th:if="${seulementAnomalies}" th:href="@{/admin/pointages(d=${date})}" class="btn btn-warning">
+                <i class="bi bi-x-lg"></i> Tout afficher</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
+            <div class="stat-label">En poste</div><div class="stat-value" th:text="${nbEnPoste}">0</div>
+        </div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card h-100" th:classappend="${nbAnomalies > 0} ? 'stat-alerte'"><div class="card-body">
+            <div class="stat-label">À vérifier</div><div class="stat-value" th:text="${nbAnomalies}">0</div>
+        </div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Agent</th>
+                    <th>Lieu</th>
+                    <th>Prévu</th>
+                    <th>Pointages</th>
+                    <th class="text-end">Pointé</th>
+                    <th>État</th>
+                    <th class="text-end"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(suivis)}">
+                    <td colspan="7" class="text-center text-muted py-4">Aucune mission à afficher.</td>
+                </tr>
+                <th:block th:each="s : ${suivis}">
+                    <tr>
+                        <td>
+                            <span class="pastille" th:style="'background:' + ${s.mission().agent.couleur}"></span>
+                            <span class="fw-semibold" th:text="${s.mission().agent.nomComplet}"></span>
+                            <div class="small"><a th:href="${@fmt.telLien(s.mission().agent.telephone)}" class="text-muted text-decoration-none">
+                                <i class="bi bi-telephone"></i> <span th:text="${s.mission().agent.telephoneFormate}"></span></a></div>
+                        </td>
+                        <td th:text="${s.mission().site.nom}"></td>
+                        <td class="text-nowrap">
+                            <span th:text="${s.mission().horairesLibelle}"></span>
+                            <div class="small text-muted" th:text="${@fmt.heures(s.mission().dureeMinutes)}"></div>
+                        </td>
+                        <td>
+                            <span th:if="${#lists.isEmpty(s.pointages())}" class="text-muted small">Aucun</span>
+                            <div th:each="p : ${s.pointages()}" class="small text-nowrap">
+                                <i class="bi" th:classappend="${p.type.name() == 'ARRIVEE'} ? 'bi-box-arrow-in-right text-success' : 'bi-box-arrow-right text-warning'"></i>
+                                <span th:text="${p.type.libelle + ' ' + #temporals.format(p.horodatage, 'HH:mm')}"></span>
+                                <span th:if="${p.horodatage.toLocalDate() != s.mission().dateMission}" class="text-muted">(+1)</span>
+                                <span th:if="${p.manuel}" class="badge text-bg-light" th:title="${'Saisi par ' + p.saisiPar + (p.commentaire != null ? ' : ' + p.commentaire : '')}">manuel</span>
+                                <form th:action="@{/admin/pointages/{id}/supprimer(id=${p.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Supprimer ce pointage ?')">
+                                    <button class="btn btn-link btn-sm p-0 text-danger" title="Supprimer"><i class="bi bi-x-circle"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <span th:text="${s.heuresPointees}"></span>
+                            <div class="small" th:if="${!#lists.isEmpty(s.pointages())}"
+                                 th:classappend="${s.ecartMinutes < 0} ? 'text-danger' : 'text-muted'"
+                                 th:text="${@fmt.ecart(s.ecartMinutes)}"></div>
+                        </td>
+                        <td>
+                            <span class="badge" th:classappend="'text-bg-' + ${s.etat().couleur}" th:text="${s.etat().libelle}"></span>
+                            <span th:if="${s.mission().statut.name() != 'PLANIFIEE' and s.mission().statut.name() != 'EFFECTUEE'}"
+                                  class="badge text-bg-secondary" th:text="${s.mission().statut.libelle}"></span>
+                            <div th:each="a : ${s.anomalies()}" class="small text-danger" th:text="${a}"></div>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                    th:attr="data-bs-target='#ajout-' + ${s.mission().id}" title="Ajouter un pointage manuellement">
+                                <i class="bi bi-plus-lg"></i></button>
+                            <a th:href="@{/admin/missions/{id}(id=${s.mission().id})}" class="btn btn-sm btn-outline-primary" title="Mission">
+                                <i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    <tr class="collapse" th:id="${'ajout-' + s.mission().id}">
+                        <td colspan="7" class="bg-light">
+                            <form th:action="@{/admin/pointages/ajouter}" method="post" class="row g-2 align-items-end">
+                                <input type="hidden" name="missionId" th:value="${s.mission().id}">
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label small mb-1">Type</label>
+                                    <select name="type" class="form-select form-select-sm">
+                                        <option th:each="t : ${types}" th:value="${t}" th:text="${t.libelle}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small mb-1">Date et heure</label>
+                                    <input type="datetime-local" name="horodatage" class="form-control form-control-sm" required
+                                           th:value="${@fmt.dateTimeLocal(s.mission().dateMission.atTime(s.mission().premiereHeure))}">
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <label class="form-label small mb-1">Motif</label>
+                                    <input type="text" name="commentaire" class="form-control form-control-sm" maxlength="255"
+                                           placeholder="Ex. : téléphone déchargé, confirmé par le magasin">
+                                </div>
+                                <div class="col-12 col-md-2">
+                                    <button class="btn btn-sm btn-primary w-100" type="submit">Ajouter</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                </th:block>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted mt-3">
+        Retard signalé au-delà de la tolérance (5 min par défaut). « Pointé » = somme des durées entre chaque arrivée et le départ suivant.
+        Les pointages manuels sont marqués et gardent le nom de l'admin qui les a saisis.
+    </p>
+</div>
+</body>
+</html>

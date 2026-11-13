@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Lieux de mission</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h1 class="h3 mb-0 fw-bold">Lieux de mission</h1>
+        <div class="d-flex gap-2">
+            <a th:href="@{/admin/sites/tous/qr}" class="btn btn-outline-secondary"><i class="bi bi-qr-code me-1"></i>Tous les QR codes</a>
+            <a th:href="@{/admin/sites/nouveau}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Nouveau lieu</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Lieu</th>
+                    <th>Adresse</th>
+                    <th class="d-none d-md-table-cell">Client</th>
+                    <th class="d-none d-lg-table-cell">Contact sur place</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(sites)}">
+                    <td colspan="5" class="text-center text-muted py-4">Aucun lieu enregistré.</td>
+                </tr>
+                <tr th:each="s : ${sites}" th:classappend="${!s.actif} ? 'text-muted'">
+                    <td class="fw-semibold">
+                        <span th:text="${s.nom}"></span>
+                        <span th:if="${!s.actif}" class="badge text-bg-secondary ms-1">Inactif</span>
+                    </td>
+                    <td><a th:href="${s.lienCarte}" target="_blank" rel="noopener" class="text-decoration-none" th:text="${s.adresseComplete}"></a></td>
+                    <td class="d-none d-md-table-cell" th:text="${s.client ?: '–'}"></td>
+                    <td class="d-none d-lg-table-cell">
+                        <span th:text="${s.contactNom ?: '–'}"></span>
+                        <a th:if="${s.contactTelephone}" th:href="${@fmt.telLien(s.contactTelephone)}" class="small ms-1 text-decoration-none"
+                           th:text="${s.contactTelephone}"></a>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a th:href="@{/admin/missions/nouvelle(siteId=${s.id})}" class="btn btn-sm btn-outline-primary" title="Planifier une mission ici">
+                            <i class="bi bi-calendar-plus"></i></a>
+                        <a th:href="@{/admin/sites/{id}/qr(id=${s.id})}" class="btn btn-sm btn-outline-secondary" title="QR code de pointage">
+                            <i class="bi bi-qr-code"></i></a>
+                        <a th:href="@{/admin(siteId=${s.id})}" class="btn btn-sm btn-outline-secondary" title="Voir le planning du lieu">
+                            <i class="bi bi-calendar3"></i></a>
+                        <a th:href="@{/admin/sites/{id}(id=${s.id})}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                            <i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

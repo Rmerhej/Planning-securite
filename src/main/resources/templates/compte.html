@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Mon compte</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+            <h1 class="h3 fw-bold mb-4">Mon compte</h1>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="brand-mark"><i class="bi bi-person"></i></span>
+                        <div>
+                            <div class="fw-semibold" th:text="${utilisateur.agent != null ? utilisateur.agent.nomComplet : 'Administrateur'}"></div>
+                            <div class="small text-muted">Identifiant : <code th:text="${utilisateur.username}"></code></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-key me-1"></i>Changer mon mot de passe</div>
+                <div class="card-body">
+                    <form th:action="@{/compte/mot-de-passe}" th:object="${form}" method="post" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label" for="actuel">Mot de passe actuel</label>
+                            <input type="password" class="form-control" th:field="*{actuel}" th:errorclass="is-invalid"
+                                   autocomplete="current-password" required>
+                            <div class="invalid-feedback" th:errors="*{actuel}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="nouveau">Nouveau mot de passe</label>
+                            <input type="password" class="form-control" th:field="*{nouveau}" th:errorclass="is-invalid"
+                                   autocomplete="new-password" minlength="8" required>
+                            <div class="invalid-feedback" th:errors="*{nouveau}"></div>
+                            <div class="form-text">8 caractères minimum.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="confirmation">Confirmer le nouveau mot de passe</label>
+                            <input type="password" class="form-control" th:field="*{confirmation}"
+                                   th:classappend="${#fields.hasErrors('confirmation') or #fields.hasErrors('confirmationValide')} ? 'is-invalid'"
+                                   autocomplete="new-password" required>
+                            <div class="invalid-feedback" th:errors="*{confirmation}"></div>
+                            <div class="invalid-feedback" th:errors="*{confirmationValide}"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
+                    </form>
+                </div>
+            </div>
+
+            <p class="small text-muted mt-3" th:if="${utilisateur.agent != null}">
+                Mot de passe oublié ? Demandez à votre responsable de vous en définir un nouveau.
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

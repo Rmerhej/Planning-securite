@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Mon planning</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+
+            <h1 class="h4 fw-bold mb-1">Bonjour <span th:text="${agent.prenom}"></span></h1>
+            <p class="text-muted mb-3">Voici votre planning.</p>
+
+            <!-- Semaine / mois -->
+            <ul class="nav nav-pills nav-fill mb-3">
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${vue == 'semaine'} ? 'active'"
+                       th:href="@{/agent(vue='semaine',d=${debut})}">Semaine</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${vue == 'mois'} ? 'active'"
+                       th:href="@{/agent(vue='mois',d=${debut})}">Mois</a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <a th:href="@{/agent(vue=${vue},d=${precedent})}" class="btn btn-outline-secondary" aria-label="Précédent">
+                    <i class="bi bi-chevron-left"></i></a>
+                <div class="text-center">
+                    <div class="fw-semibold" th:if="${vue == 'mois'}" th:text="${@fmt.mois(debut)}"></div>
+                    <div class="fw-semibold" th:if="${vue == 'semaine'}"
+                         th:text="${'Du ' + #temporals.format(debut, 'dd/MM') + ' au ' + #temporals.format(fin, 'dd/MM')}"></div>
+                    <div class="small text-muted" th:text="${nbMissions + ' mission(s) · ' + @fmt.heures(totalMinutes)}"></div>
+                </div>
+                <a th:href="@{/agent(vue=${vue},d=${suivant})}" class="btn btn-outline-secondary" aria-label="Suivant">
+                    <i class="bi bi-chevron-right"></i></a>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(absences)}" class="alert alert-info py-2">
+                <div th:each="a : ${absences}">
+                    <i class="bi bi-calendar-x me-1"></i>
+                    <span th:text="${a.type.libelle + ' du ' + #temporals.format(a.dateDebut, 'dd/MM') + ' au ' + #temporals.format(a.dateFin, 'dd/MM')}"></span>
+                </div>
+            </div>
+
+            <div th:if="${#maps.isEmpty(parJour)}" class="card">
+                <div class="card-body text-center text-muted py-5">
+                    <i class="bi bi-cup-hot fs-1 d-block mb-2"></i>Aucune mission sur cette période.
+                </div>
+            </div>
+
+            <div th:each="jour : ${parJour}" class="mb-3">
+                <div class="jour-titre mb-2" th:classappend="${jour.key == aujourdhui} ? 'aujourdhui'">
+                    <span th:text="${@fmt.jourLong(jour.key)}"></span>
+                    <span th:if="${jour.key == aujourdhui}" class="badge text-bg-primary ms-1">Aujourd'hui</span>
+                </div>
+                <div th:each="m : ${jour.value}" class="card mission-agent mb-2"
+                     th:classappend="'statut-' + ${#strings.toLowerCase(m.statut.name())}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div class="fw-semibold fs-5" th:text="${m.site.nom}"></div>
+                            <span th:if="${m.statut.name() != 'PLANIFIEE'}" class="badge" th:classappend="'text-bg-' + ${m.statut.couleur}"
+                                  th:text="${m.statut.libelle}"></span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 my-2">
+                            <span th:each="c : ${m.creneauxTries}" class="creneau-badge" th:text="${c.libelle}"></span>
+                        </div>
+                        <a th:href="${m.site.lienCarte}" target="_blank" rel="noopener" class="d-block text-decoration-none small">
+                            <i class="bi bi-geo-alt"></i> <span th:text="${m.site.adresseComplete}"></span></a>
+                        <a th:if="${m.site.contactTelephone}" th:href="${@fmt.telLien(m.site.contactTelephone)}"
+                           class="d-block text-decoration-none small mt-1">
+                            <i class="bi bi-telephone"></i>
+                            <span th:text="${(m.site.contactNom ?: 'Contact') + ' · ' + m.site.contactTelephone}"></span></a>
+                        <div th:if="${pointages[m.id] != null}" class="small mt-2 text-success">
+                            <i class="bi bi-qr-code-scan"></i>
+                            <span th:each="p, it : ${pointages[m.id]}"
+                                  th:text="${p.type.libelle + ' ' + #temporals.format(p.horodatage, 'HH:mm') + (it.last ? '' : ' · ')}"></span>
+                        </div>
+                        <div th:if="${pointages[m.id] == null and jour.key == aujourdhui}" class="small mt-2 text-muted">
+                            <i class="bi bi-qr-code-scan"></i> Scannez le QR code affiché sur place pour pointer.
+                        </div>
+                        <div th:if="${m.commentaire}" class="small mt-2"><i class="bi bi-chat-left-text"></i> <span th:text="${m.commentaire}"></span></div>
+                        <details th:if="${m.site.consignes}" class="small mt-2">
+                            <summary class="text-primary">Consignes de poste</summary>
+                            <div class="mt-1" style="white-space: pre-line" th:text="${m.site.consignes}"></div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agenda -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <div class="fw-semibold mb-2"><i class="bi bi-calendar-plus me-1"></i>Ajouter à mon agenda</div>
+                    <p class="small text-muted mb-2">Abonnez votre téléphone à ce lien : votre agenda se met à jour tout seul à chaque changement.</p>
+                    <div class="input-group mb-2">
+                        <input class="form-control form-control-sm" id="lien-abonnement" th:value="${lienAbonnement}" readonly>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-copier="#lien-abonnement">
+                            <i class="bi bi-clipboard"></i> Copier</button>
+                    </div>
+                    <a th:href="@{/agent/planning.ics}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Télécharger (.ics)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
