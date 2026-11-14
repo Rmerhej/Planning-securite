@@ -29,6 +29,17 @@ public class WebAdvice {
         return props.getNom();
     }
 
+    /** Instance de démonstration ? (bandeau, identifiants affichés…) */
+    @ModelAttribute("demo")
+    public boolean demo() {
+        return props.getDemo().isEnabled();
+    }
+
+    @ModelAttribute("demoConf")
+    public AppProperties.Demo demoConf() {
+        return props.getDemo();
+    }
+
     @ExceptionHandler({EntityNotFoundException.class, NoSuchElementException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String introuvable(Exception ex, Model model) {

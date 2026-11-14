@@ -137,6 +137,12 @@ public class NotificationService {
         n.setSujet(sujet);
         n.setMessage(message.length() > 4000 ? message.substring(0, 4000) : message);
         n.setEnvoyeLe(LocalDateTime.now());
+        if (props.getDemo().isEnabled()) {
+            // Démo publique : jamais d'envoi réel, quelle que soit la configuration
+            n.setStatut(StatutNotification.SIMULE);
+            notificationRepository.save(n);
+            return;
+        }
         try {
             n.setStatut(envoi.executer());
         } catch (Exception ex) {

@@ -1,0 +1,6 @@
+# PlanSécu derrière Caddy (HTTPS automatique).
+# Ajouter ce bloc au Caddyfile existant (souvent /etc/caddy/Caddyfile), remplacer le domaine,
+# puis : sudo systemctl reload caddy
+planning.ton-domaine.fr {
+    reverse_proxy 127.0.0.1:8081
+}

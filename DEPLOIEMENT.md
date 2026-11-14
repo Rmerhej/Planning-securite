@@ -170,18 +170,31 @@ Caddy obtient le certificat HTTPS tout seul.
    docker inspect NOM_DU_CONTENEUR_PROXY --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}'
    ```
 
-2. Dans `.env` (`nano .env`), mets :
+2. Dans `.env` (`nano .env`), mets `PROXY_NETWORK=LE_NOM_AFFICHÉ`, puis branche l'appli sur ce réseau :
 
+   ```bash
+   bash deploy/connecter-proxy.sh
    ```
-   COMPOSE_FILE=docker-compose.prod.yml:deploy/docker-compose.proxy-docker.yml
-   PROXY_NETWORK=LE_NOM_AFFICHÉ
-   ```
 
-3. Relance : `docker compose up -d`
+   (Ne **pas** déclarer ce réseau dans un fichier docker-compose : Docker y publierait aussi le nom court `app`,
+   et si l'autre appli du serveur a elle aussi un service `app`, le proxy confondrait les deux et l'enverrait
+   parfois vers PlanSécu. Le script ne publie que le nom complet `plansecu-app`.)
 
-4. Dans l'interface de ton proxy, ajoute l'hôte `planning.ton-domaine.fr` qui redirige vers
-   **`plansecu-app`**, port **`8080`**, en **http**, avec certificat SSL (Let's Encrypt) et « Force SSL ».
-   Dans Nginx Proxy Manager : *Hosts → Proxy Hosts → Add Proxy Host*, onglet *SSL* → *Request a new certificate*.
+3. Déclare PlanSécu dans le proxy, en visant **`plansecu-app`**, port **`8080`**, en **http** :
+   - **Caddy dans Docker** : ajoute au Caddyfile du proxy (le fichier monté sur `/etc/caddy`, voir
+     `docker inspect NOM_DU_CONTENEUR_PROXY --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'`) :
+
+     ```
+     planning.ton-domaine.fr {
+         reverse_proxy plansecu-app:8080
+     }
+     ```
+
+     puis `docker exec NOM_DU_CONTENEUR_PROXY caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile`.
+   - **Nginx Proxy Manager** : *Hosts → Proxy Hosts → Add Proxy Host*, onglet *SSL* → *Request a new certificate*
+     et « Force SSL ».
+
+Les mises à jour (`deploy/mise-a-jour.sh`) rebranchent automatiquement l'appli sur ce réseau.
 
 ### Cas C — aucun proxy
 
@@ -250,6 +263,71 @@ bash deploy/restauration.sh sauvegardes/plansecu-AAAA-MM-JJ_HHMM.sql.gz
    `https://planning.ton-domaine.fr` : ils fonctionneront depuis n'importe quel téléphone.
 3. **Agents** : crée les fiches, avec identifiant + mot de passe pour ceux qui doivent pointer.
 4. Informe les agents du pointage par QR code (et le CSE s'il y en a un), et ajoute le traitement à ton registre RGPD.
+
+---
+
+## Étape 7 (facultative) — Instance de démonstration publique
+
+But : pouvoir partager un lien (LinkedIn, README…) où chacun peut essayer PlanSécu **sans jamais voir
+tes vraies données**. La démo est un second conteneur (`plansecu-demo`) avec la même appli, mais :
+base en mémoire avec données fictives, aucun SMS ni email, mots de passe non modifiables, bandeau « démo »,
+identifiants affichés sur sa page de connexion (`demo-admin` / `demo-admin`, agent `jdupont` / `agent1234`).
+Elle consomme environ 350 Mo de RAM.
+
+1. **Sous-domaine** : sur duckdns.org, crée par exemple `demo-planning-securite` pointant vers l'IP du serveur.
+
+2. **Serveur** — active la démo dans `.env` (adapter le nom si besoin) :
+
+   ```bash
+   cd ~/planning-securite
+   cat >> .env <<'EOF'
+
+   # Démo publique
+   COMPOSE_PROFILES=demo
+   DEMO_BASE_URL=https://demo-planning-securite.duckdns.org
+   DEMO_URL=https://demo-planning-securite.duckdns.org
+   EOF
+   bash deploy/mise-a-jour.sh
+   ```
+
+   `COMPOSE_PROFILES=demo` dit à Docker de démarrer aussi le service `demo`. `DEMO_URL` ajoute le bouton
+   « Essayer la démo » sur la vitrine de la vraie appli.
+
+3. **Proxy** — ajoute la démo au Caddyfile (cas B : Caddy dans Docker), elle est jointe par `plansecu-demo:8080` :
+
+   ```
+   demo-planning-securite.duckdns.org {
+       reverse_proxy plansecu-demo:8080
+   }
+   ```
+
+   puis `caddy validate` et `caddy reload` comme à l'étape 4.
+
+4. **Remise à zéro chaque nuit à 4h** (redémarrer la démo recrée les données fictives) :
+
+   ```bash
+   (crontab -l 2>/dev/null; echo "0 4 * * * docker restart plansecu-demo >/dev/null 2>&1") | crontab -
+   crontab -l
+   ```
+
+Pour désactiver la démo : retirer la ligne `COMPOSE_PROFILES=demo` de `.env`, puis `docker rm -f plansecu-demo`.
+
+## Conseillé — Ajouter du swap (mémoire de secours)
+
+Sans swap, si la mémoire vient à manquer, Linux arrête brutalement un programme. Le swap est une réserve sur
+le disque qui évite ça (plus lente, mais seulement utilisée en cas de pic). Vérifier avec `free -h` :
+si la ligne `Swap:` affiche `0B`, en ajouter 2 Go :
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h
+```
+
+La ligne `Swap:` doit maintenant afficher `2.0Gi`. La ligne ajoutée à `/etc/fstab` le réactive à chaque redémarrage.
 
 ---
 

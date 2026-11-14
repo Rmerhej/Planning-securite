@@ -7,10 +7,6 @@ Stack : Spring Boot 3.5 · Thymeleaf + Layout Dialect · Bootstrap 5 (thème Boo
 Bootstrap Icons · Google Fonts (Inter) · FullCalendar 6 · Spring Security · Spring Data JPA ·
 **MySQL 8** + Flyway · Spring Mail · Apache POI (Excel).
 
-## Demo
-https://demo-planning-securite.duckdns.org/
-
-
 ## Fonctionnalités
 
 **Administrateur**
@@ -53,6 +49,19 @@ https://demo-planning-securite.duckdns.org/
 - Le 25 à 18h : planning du mois suivant aux agents « mensuel ».
 - Chaque nuit : missions passées « planifiées » → « effectuées » (l'admin marque « Agent absent » si besoin).
 
+## Vitrine et démo
+
+- Un visiteur non connecté arrive sur une **page de présentation** (`/`), avec un bouton « Se connecter ».
+- Une **instance de démonstration** peut tourner à côté (réglage `DEMO_MODE=true`) : données fictives recréées
+  à chaque démarrage, aucun SMS ni email envoyé, mots de passe non modifiables, bandeau « démo », identifiants
+  affichés sur sa page de connexion. Mise en place : étape 7 de [DEPLOIEMENT.md](DEPLOIEMENT.md).
+- Ne jamais publier d'identifiants de l'instance réelle.
+
+## Mise en production
+
+Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : serveur Linux + Docker, proxy HTTPS, sauvegardes automatiques, mises à jour.
+Fichiers : `docker-compose.prod.yml`, `.env.example`, dossier `deploy/`.
+
 ## Lancer l'application
 
 ### Option 1 — Docker (MySQL + appli)
@@ -80,6 +89,23 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev,demo
 ```
 
 Comptes de démo : `admin` / `admin123`, agents `jdupont`, `smartin`, `kbenali`, `lpetit`, `mrobert` / `agent1234`.
+
+### Mettre à jour l'application (nouveau zip)
+
+Le zip contient déjà un dossier `planning-securite` : il faut le dézipper dans le dossier **parent** du projet
+(ici `C:\Users\rolan\projets`), pas dans le projet lui-même, sinon on obtient un dossier en double.
+
+1. Arrêter l'appli dans IntelliJ.
+2. Dans PowerShell :
+   ```powershell
+   Expand-Archive "$env:USERPROFILE\Downloads\planning-securite.zip" -DestinationPath "C:\Users\rolan\projets" -Force
+   ```
+3. Dans IntelliJ : Maven → Reload, puis Build → Rebuild Project, puis relancer.
+4. Vérifier la console : `Successfully validated N migrations` doit compter tous les fichiers de
+   `src/main/resources/db/migration`.
+
+Les données MySQL sont conservées. Ne jamais utiliser `docker compose down -v` (efface la base).
+Les fichiers modifiés à la main (ex. ports dans `docker-compose.yml`) sont écrasés : les refaire après.
 
 ### Tests
 ```bash
@@ -122,11 +148,3 @@ templates/     vues Thymeleaf (layout commun, admin/, agent/, email/)
 - Planning PDF joint aux emails (OpenPDF).
 - Duplication d'une semaine type, gestion des remplaçants.
 - Multi-utilisateurs admin (chefs de poste) avec droits par client.
-
-## License and Copyright
-
-Copyright © 2026 Roland Merhej.
-All rights reserved.
-
-Source code is publicly available for review.
-See COPYRIGHT.md for usage restrictions.

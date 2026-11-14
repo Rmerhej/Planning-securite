@@ -1,0 +1,99 @@
+# PlanSécu — production (serveur)
+# Le fichier .env (copie de .env.example) contient COMPOSE_FILE=docker-compose.prod.yml :
+# sur le serveur, il suffit donc de taper « docker compose up -d --build » dans le dossier du projet.
+# Les secrets sont dans .env, jamais dans ce fichier. Guide complet : DEPLOIEMENT.md
+
+name: plansecu
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: plansecu-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: plansecu
+      MYSQL_USER: plansecu
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD manquant dans .env}
+      TZ: Europe/Paris
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./deploy/mysql-econome.cnf:/etc/mysql/conf.d/econome.cnf:ro
+    # Aucun port publié : la base n'est joignable que par l'appli
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    image: plansecu-app:latest
+    container_name: plansecu-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: plansecu
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD manquant dans .env}
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL manquant dans .env}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework   # derrière un proxy HTTPS
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-planning@plansecu.fr}
+      SMS_PROVIDER: ${SMS_PROVIDER:-log}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      SMS_SENDER: ${SMS_SENDER:-PlanSecu}
+      DEMO_URL: ${DEMO_URL:-}          # bouton « Essayer la démo » sur la vitrine
+      TZ: Europe/Paris
+      # Mémoire Java limitée pour partager le serveur avec d'autres applis
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1"
+    ports:
+      # Uniquement en local : c'est le proxy (nginx, Caddy…) qui l'expose en HTTPS
+      - "127.0.0.1:${APP_PORT:-8081}:8080"
+    mem_limit: 512m
+    logging: *logs
+
+  # Instance de démonstration publique (facultative) : activée par COMPOSE_PROFILES=demo dans .env.
+  # Même image que l'appli, mais base en mémoire (H2), données fictives recréées à chaque démarrage,
+  # aucun SMS ni email, mots de passe non modifiables. Remise à zéro : docker restart plansecu-demo
+  demo:
+    profiles: ["demo"]
+    build: .
+    image: plansecu-app:latest
+    container_name: plansecu-demo
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DEMO_MODE: "true"
+      SPRING_DATASOURCE_URL: "jdbc:h2:mem:plansecu;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      ADMIN_USER: demo-admin
+      ADMIN_PASSWORD: demo-admin
+      APP_BASE_URL: ${DEMO_BASE_URL:-https://demo-planning-securite.duckdns.org}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      SMS_PROVIDER: log
+      MAIL_ENABLED: "false"
+      TZ: Europe/Paris
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1"
+    # Pas de port publié : seul Caddy la joint, par le réseau Docker (deploy/connecter-proxy.sh)
+    mem_limit: 400m
+    logging: *logs
+
+volumes:
+  mysql-data:

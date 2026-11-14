@@ -3,3 +3,12 @@ target/
 *.iml
 .vscode/
 .DS_Store
+.env
+sauvegardes/
+.env
+*.env.local
+backups/
+sauvegardes/
+*.sql
+*.sql.gz
+!src/main/resources/db/migration/*.sql

@@ -30,6 +30,8 @@ body {
 }
 .brand-mark-lg { width: 3.5rem; height: 3.5rem; font-size: 1.8rem; border-radius: .9rem; }
 
+.bandeau-demo { background: #fef3c7; color: #78350f; border-bottom: 1px solid #fde68a; }
+
 .login-page { background: linear-gradient(160deg, #eef2ff 0%, #f8fafc 60%); }
 
 /* Indicateurs */

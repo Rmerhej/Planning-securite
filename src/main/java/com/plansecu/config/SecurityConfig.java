@@ -18,6 +18,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/").permitAll()                 // page vitrine publique
                         .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/favicon.ico", "/error").permitAll()
                         .requestMatchers("/ical/**").permitAll()          // abonnement calendrier par lien secret
                         .requestMatchers("/admin/**").hasRole("ADMIN")

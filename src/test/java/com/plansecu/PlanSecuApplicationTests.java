@@ -50,6 +50,8 @@ class PlanSecuApplicationTests {
     @Test
     void pageDeConnexion() throws Exception {
         mvc.perform(get("/login")).andExpect(status().isOk());
+        mvc.perform(get("/")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Pointage par QR code")));
         mvc.perform(get("/admin")).andExpect(status().is3xxRedirection());
     }
 

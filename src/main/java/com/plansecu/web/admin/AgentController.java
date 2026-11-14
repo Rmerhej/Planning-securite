@@ -74,6 +74,14 @@ public class AgentController {
     @PostMapping("/enregistrer")
     public String enregistrer(@Valid @ModelAttribute("form") AgentForm form, BindingResult br,
                               Model model, RedirectAttributes ra) {
+        if (props.getDemo().isEnabled() && form.getId() != null) {
+            // Démo : on ne touche pas aux comptes existants (sinon un visiteur bloquerait les suivants)
+            agentService.identifiant(form.getId()).ifPresent(existant -> {
+                form.setIdentifiant(existant);
+                form.setMotDePasse(null);
+                form.setActif(true);
+            });
+        }
         String erreurCompte = agentService.verifierCompte(form);
         if (erreurCompte != null) br.rejectValue("identifiant", "compte", erreurCompte);
         if (br.hasErrors()) {
@@ -87,6 +95,10 @@ public class AgentController {
 
     @PostMapping("/{id}/supprimer")
     public String supprimer(@PathVariable Long id, RedirectAttributes ra) {
+        if (props.getDemo().isEnabled() && agentService.identifiant(id).isPresent()) {
+            ra.addFlashAttribute("erreur", "Dans la démo, les agents qui ont un compte de connexion ne peuvent pas être supprimés.");
+            return "redirect:/admin/agents";
+        }
         boolean supprime = agentService.supprimerOuDesactiver(id);
         ra.addFlashAttribute("succes", supprime ? "Agent supprimé."
                 : "L'agent a des missions dans l'historique : il a été désactivé (son historique est conservé).");

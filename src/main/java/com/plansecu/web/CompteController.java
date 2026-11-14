@@ -1,5 +1,6 @@
 package com.plansecu.web;
 
+import com.plansecu.config.AppProperties;
 import com.plansecu.domain.Utilisateur;
 import com.plansecu.repository.UtilisateurRepository;
 import com.plansecu.web.form.MotDePasseForm;
@@ -25,6 +26,7 @@ public class CompteController {
 
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AppProperties props;
 
     @GetMapping
     public String compte(Authentication auth, Model model) {
@@ -38,6 +40,10 @@ public class CompteController {
     public String changerMotDePasse(Authentication auth,
                                     @Valid @ModelAttribute("form") MotDePasseForm form, BindingResult br,
                                     Model model, RedirectAttributes ra) {
+        if (props.getDemo().isEnabled()) {
+            ra.addFlashAttribute("erreur", "Le changement de mot de passe est désactivé dans la démo.");
+            return "redirect:/compte";
+        }
         Utilisateur u = utilisateur(auth);
         if (form.getActuel() != null && !form.getActuel().isBlank()
                 && !passwordEncoder.matches(form.getActuel(), u.getPassword())) {

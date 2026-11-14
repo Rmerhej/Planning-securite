@@ -14,6 +14,23 @@ public class AppProperties {
     private Notifications notifications = new Notifications();
     private Regles regles = new Regles();
     private Planning planning = new Planning();
+    private Demo demo = new Demo();
+
+    /**
+     * Instance de démonstration publique : données fictives, aucun envoi réel,
+     * mots de passe non modifiables, identifiants affichés sur la page de connexion.
+     */
+    @Data
+    public static class Demo {
+        private boolean enabled = false;
+        /** Adresse de l'instance de démo, pour le bouton « Essayer la démo » de la vitrine. */
+        private String url = "";
+        /** Identifiants affichés sur la page de connexion de la démo. */
+        private String adminUser = "demo-admin";
+        private String adminPassword = "demo-admin";
+        private String agentUser = "jdupont";
+        private String agentPassword = "agent1234";
+    }
 
     @Data
     public static class Admin {

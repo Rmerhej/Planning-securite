@@ -8,6 +8,9 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:plansecu}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=Europe/Paris&createDatabaseIfNotExist=true
     username: ${DB_USER:plansecu}
     password: ${DB_PASSWORD:plansecu}
+  h2:
+    console:
+      enabled: false          # jamais en production ni en démo (seul le profil dev l'active)
   jpa:
     open-in-view: false
     hibernate:
@@ -54,6 +57,11 @@ app:
     nuit-fin: 6
     tolerance-retard-minutes: 5     # retard signalé au-delà
     pointage-avance-minutes: 120    # on peut pointer jusqu'à 2h avant le début
+  demo:
+    enabled: ${DEMO_MODE:false}      # true uniquement sur l'instance de démonstration publique
+    url: ${DEMO_URL:}                # lien « Essayer la démo » affiché sur la vitrine
+    admin-user: ${ADMIN_USER:demo-admin}
+    admin-password: ${ADMIN_PASSWORD:demo-admin}
   planning:
     cloture-auto: true
     cron-hebdo: "0 0 18 * * SUN"     # dimanche 18h : planning de la semaine suivante
