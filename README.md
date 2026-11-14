@@ -122,3 +122,11 @@ templates/     vues Thymeleaf (layout commun, admin/, agent/, email/)
 - Planning PDF joint aux emails (OpenPDF).
 - Duplication d'une semaine type, gestion des remplaçants.
 - Multi-utilisateurs admin (chefs de poste) avec droits par client.
+
+## License and Copyright
+
+Copyright © 2026 Roland Merhej.
+All rights reserved.
+
+Source code is publicly available for review.
+See COPYRIGHT.md for usage restrictions.
